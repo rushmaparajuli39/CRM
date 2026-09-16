@@ -19,7 +19,11 @@ export default async function EntityDetailPage({
   const { id } = await params;
   const supabase = await createClient();
   const current = await getCurrentUser();
-  const isAdmin = current?.profile?.role === "admin";
+  const role = current?.profile?.role;
+  // Reaching this page at all already means RLS granted access to this
+  // entity (admin, or a viewer/editor with a grant) — so whether this
+  // user can write here comes down to their role alone.
+  const canWrite = role === "admin" || role === "editor";
 
   const [{ data: entity }, { data: einRecords }, { data: licenses }, { data: policies }] =
     await Promise.all([
@@ -67,39 +71,39 @@ export default async function EntityDetailPage({
         <h2 className="text-lg font-semibold text-zinc-900">EIN records</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(einRecords as EinRecord[] | null)?.map((rec) => (
-            <EinRecordCard key={rec.id} entityId={id} record={rec} canEdit={isAdmin} />
+            <EinRecordCard key={rec.id} entityId={id} record={rec} canEdit={canWrite} />
           ))}
           {(!einRecords || einRecords.length === 0) && (
             <p className="text-sm text-zinc-500">No EIN records yet.</p>
           )}
         </div>
-        {isAdmin && <AddEinForm entityId={id} />}
+        {canWrite && <AddEinForm entityId={id} />}
       </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-zinc-900">Licenses</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(licenses as License[] | null)?.map((lic) => (
-            <LicenseCard key={lic.id} entityId={id} record={lic} canEdit={isAdmin} />
+            <LicenseCard key={lic.id} entityId={id} record={lic} canEdit={canWrite} />
           ))}
           {(!licenses || licenses.length === 0) && (
             <p className="text-sm text-zinc-500">No licenses yet.</p>
           )}
         </div>
-        {isAdmin && <AddLicenseForm entityId={id} />}
+        {canWrite && <AddLicenseForm entityId={id} />}
       </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-zinc-900">Insurance policies</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(policies as InsurancePolicy[] | null)?.map((pol) => (
-            <InsuranceCard key={pol.id} entityId={id} record={pol} canEdit={isAdmin} />
+            <InsuranceCard key={pol.id} entityId={id} record={pol} canEdit={canWrite} />
           ))}
           {(!policies || policies.length === 0) && (
             <p className="text-sm text-zinc-500">No insurance policies yet.</p>
           )}
         </div>
-        {isAdmin && <AddInsuranceForm entityId={id} />}
+        {canWrite && <AddInsuranceForm entityId={id} />}
       </section>
     </div>
   );

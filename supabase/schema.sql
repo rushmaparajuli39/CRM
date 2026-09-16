@@ -80,6 +80,22 @@ create or replace function is_admin() returns boolean as $$
   );
 $$ language sql security definer;
 
+-- Helper: is the current user an editor? (Editors can add/edit/delete
+-- records on entities they've been granted access to; viewers cannot.)
+create or replace function is_editor() returns boolean as $$
+  select exists (
+    select 1 from profiles where id = auth.uid() and role = 'editor'
+  );
+$$ language sql security definer;
+
+-- Helper: does the current user have an access grant for this entity?
+create or replace function has_entity_access(target_entity_id uuid) returns boolean as $$
+  select exists (
+    select 1 from user_entity_access
+    where user_id = auth.uid() and entity_id = target_entity_id
+  );
+$$ language sql security definer;
+
 -- Entities: admins see all, others see only granted entities
 create policy "entities_select" on entities for select
   using (
@@ -106,22 +122,34 @@ create policy "insurance_select" on insurance_policies for select
     or entity_id in (select entity_id from user_entity_access where user_id = auth.uid())
   );
 
--- Only admins/editors can insert/update/delete (tighten later as needed)
+-- Entities themselves (creating/renaming/closing a business) are a
+-- structural decision — admin-only, same as access grants below.
 create policy "entities_write" on entities for all
   using (is_admin()) with check (is_admin());
 
+-- Records: admins write everywhere; editors write only on entities
+-- they've been granted access to; viewers can't write at all.
 create policy "ein_write" on ein_records for all
-  using (is_admin()) with check (is_admin());
+  using (is_admin() or (is_editor() and has_entity_access(entity_id)))
+  with check (is_admin() or (is_editor() and has_entity_access(entity_id)));
 
 create policy "licenses_write" on licenses for all
-  using (is_admin()) with check (is_admin());
+  using (is_admin() or (is_editor() and has_entity_access(entity_id)))
+  with check (is_admin() or (is_editor() and has_entity_access(entity_id)));
 
 create policy "insurance_write" on insurance_policies for all
-  using (is_admin()) with check (is_admin());
+  using (is_admin() or (is_editor() and has_entity_access(entity_id)))
+  with check (is_admin() or (is_editor() and has_entity_access(entity_id)));
 
 -- Profiles: users can see their own profile; admins see all
 create policy "profiles_select" on profiles for select
   using (auth.uid() = id or is_admin());
+
+-- Only admins change roles (self-service role changes would be a
+-- privilege-escalation hole). Insert is handled by the new-user trigger
+-- in triggers.sql, which runs as security definer and bypasses RLS.
+create policy "profiles_write" on profiles for update
+  using (is_admin()) with check (is_admin());
 
 -- Access grants: only admins manage these
 create policy "access_select" on user_entity_access for select

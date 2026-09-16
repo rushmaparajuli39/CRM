@@ -106,8 +106,9 @@ export async function updateInsurancePolicy(recordId: string, entityId: string, 
 async function deleteDocumentIfPresent(documentUrl: string | null) {
   if (!documentUrl) return;
   const supabase = await createClient();
-  // Best-effort: an admin-only delete per storage.sql. A failure here (e.g.
-  // the object was already removed) shouldn't block deleting the record.
+  // Best-effort: RLS-gated per storage.sql (admin, or editor with access
+  // to this entity). A failure here (e.g. the object was already removed)
+  // shouldn't block deleting the record.
   await supabase.storage.from("documents").remove([documentUrl]);
 }
 

@@ -10,12 +10,16 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
 ## 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com), create a free project.
-2. In the SQL Editor, run these three files from `supabase/` **in order**:
+2. In the SQL Editor, run these files from `supabase/` **in order**:
    1. `schema.sql` — tables, RLS policies
    2. `storage.sql` — the private `documents` storage bucket and its RLS
       policies
    3. `triggers.sql` — auto-creates a `profiles` row (defaulting to
       `viewer`) whenever someone signs up
+   4. `editor_permissions.sql` — only needed if you already applied an
+      older copy of `schema.sql`/`storage.sql` before the editor-role
+      write policies existed. On a fresh project this is redundant
+      (schema.sql/storage.sql already include it) — skip it.
 3. In Project Settings → API, copy the Project URL, `anon` public key, and
    `service_role` key.
 
@@ -72,16 +76,28 @@ admin) — so the very first admin has to be created directly in Supabase:
 
 ## Access model
 
-- `profiles.role`: `admin` sees and manages everything. `viewer`/`editor`
-  see only entities granted via `user_entity_access`.
-- As shipped in `schema.sql`, only `admin` can write (insert/update/delete)
-  to entities, EIN records, licenses, insurance policies, or upload
-  documents — `editor` currently has read-only access, same as `viewer`.
-  If you want editors to be able to upload/edit, extend the `*_write`
-  policies in `schema.sql` (and `documents_insert`/`_update`/`_delete` in
-  `storage.sql`) to also allow `role = 'editor'`.
-- RLS is the actual enforcement — the UI hides admin-only controls from
-  non-admins, but the database rejects the write either way.
+Three roles in `profiles.role`:
+
+| Role | Sees | Writes |
+|---|---|---|
+| `admin` | every entity | everything — entities, records, documents, staff access grants, roles |
+| `editor` | only entities granted via `user_entity_access` | EIN records, licenses, insurance policies, and their documents — but only on entities they're granted, and never entities themselves or access grants |
+| `viewer` | only entities granted via `user_entity_access` | nothing |
+
+A couple of things worth being explicit about:
+
+- **Entity creation and access grants are admin-only, deliberately.** Who
+  can see which business, and whether a business exists at all, are
+  structural decisions — an editor fixing a typo on a license shouldn't
+  also be able to grant themselves access to a different entity.
+- **RLS is the actual enforcement, not the UI.** The UI hides controls a
+  role can't use, but every write is re-checked at the database via the
+  `*_write` policies in `schema.sql` and `storage.sql` — an editor's
+  request for an entity they're not granted is rejected there regardless
+  of what the UI shows.
+- If you applied an older copy of this schema before editor write access
+  existed, run `supabase/editor_permissions.sql` once to patch it in —
+  see the setup steps above.
 
 ## Deploying
 

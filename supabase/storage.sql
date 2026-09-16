@@ -24,13 +24,32 @@ create policy "documents_select" on storage.objects for select
     )
   );
 
--- Write (upload/replace/delete): admin-only, matching the "*_write" table
--- policies in schema.sql. Extend to the 'editor' role later if needed.
+-- Write (upload/replace/delete): admins everywhere; editors only under
+-- entities they've been granted access to — matching the "*_write" table
+-- policies in schema.sql.
 create policy "documents_insert" on storage.objects for insert
-  with check (bucket_id = 'documents' and is_admin());
+  with check (
+    bucket_id = 'documents'
+    and (
+      is_admin()
+      or (is_editor() and has_entity_access((storage.foldername(name))[1]::uuid))
+    )
+  );
 
 create policy "documents_update" on storage.objects for update
-  using (bucket_id = 'documents' and is_admin());
+  using (
+    bucket_id = 'documents'
+    and (
+      is_admin()
+      or (is_editor() and has_entity_access((storage.foldername(name))[1]::uuid))
+    )
+  );
 
 create policy "documents_delete" on storage.objects for delete
-  using (bucket_id = 'documents' and is_admin());
+  using (
+    bucket_id = 'documents'
+    and (
+      is_admin()
+      or (is_editor() and has_entity_access((storage.foldername(name))[1]::uuid))
+    )
+  );
