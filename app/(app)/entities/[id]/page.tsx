@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
-import RecordCard from "@/components/RecordCard";
+import { EinRecordCard, LicenseCard, InsuranceCard } from "@/components/RecordCard";
 import { AddEinForm, AddLicenseForm, AddInsuranceForm } from "@/components/AddRecordForms";
 import type { Entity, EinRecord, License, InsurancePolicy } from "@/lib/database.types";
 
@@ -67,17 +67,7 @@ export default async function EntityDetailPage({
         <h2 className="text-lg font-semibold text-zinc-900">EIN records</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(einRecords as EinRecord[] | null)?.map((rec) => (
-            <RecordCard
-              key={rec.id}
-              entityId={id}
-              table="ein_records"
-              recordId={rec.id}
-              title={rec.ein_number}
-              subtitle={rec.legal_name}
-              fields={[{ label: "Issued", value: rec.issued_date }]}
-              documentUrl={rec.document_url}
-              canEdit={isAdmin}
-            />
+            <EinRecordCard key={rec.id} entityId={id} record={rec} canEdit={isAdmin} />
           ))}
           {(!einRecords || einRecords.length === 0) && (
             <p className="text-sm text-zinc-500">No EIN records yet.</p>
@@ -90,23 +80,7 @@ export default async function EntityDetailPage({
         <h2 className="text-lg font-semibold text-zinc-900">Licenses</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(licenses as License[] | null)?.map((lic) => (
-            <RecordCard
-              key={lic.id}
-              entityId={id}
-              table="licenses"
-              recordId={lic.id}
-              title={lic.license_type}
-              subtitle={lic.license_number}
-              fields={[
-                { label: "Authority", value: lic.issuing_authority },
-                { label: "Issued", value: lic.issue_date },
-                { label: "Expires", value: lic.expiration_date },
-                { label: "Status", value: lic.status },
-              ]}
-              expirationDate={lic.expiration_date}
-              documentUrl={lic.document_url}
-              canEdit={isAdmin}
-            />
+            <LicenseCard key={lic.id} entityId={id} record={lic} canEdit={isAdmin} />
           ))}
           {(!licenses || licenses.length === 0) && (
             <p className="text-sm text-zinc-500">No licenses yet.</p>
@@ -119,23 +93,7 @@ export default async function EntityDetailPage({
         <h2 className="text-lg font-semibold text-zinc-900">Insurance policies</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(policies as InsurancePolicy[] | null)?.map((pol) => (
-            <RecordCard
-              key={pol.id}
-              entityId={id}
-              table="insurance_policies"
-              recordId={pol.id}
-              title={pol.policy_type}
-              subtitle={pol.carrier}
-              fields={[
-                { label: "Policy #", value: pol.policy_number },
-                { label: "Coverage", value: pol.coverage_amount },
-                { label: "Effective", value: pol.effective_date },
-                { label: "Expires", value: pol.expiration_date },
-              ]}
-              expirationDate={pol.expiration_date}
-              documentUrl={pol.document_url}
-              canEdit={isAdmin}
-            />
+            <InsuranceCard key={pol.id} entityId={id} record={pol} canEdit={isAdmin} />
           ))}
           {(!policies || policies.length === 0) && (
             <p className="text-sm text-zinc-500">No insurance policies yet.</p>
