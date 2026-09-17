@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/current-user";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { CreateEntityForm, InviteStaffForm } from "@/components/AdminForms";
@@ -28,11 +29,19 @@ export default async function AdminPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Admin</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Manage entities, staff accounts, and who can see what.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900">Admin</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Manage entities, staff accounts, and who can see what.
+          </p>
+        </div>
+        <Link
+          href="/admin/audit-log"
+          className="shrink-0 rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          View audit log
+        </Link>
       </div>
 
       <section className="flex flex-col gap-4">

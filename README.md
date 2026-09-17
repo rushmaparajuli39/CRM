@@ -16,7 +16,10 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
       policies
    3. `triggers.sql` — auto-creates a `profiles` row (defaulting to
       `viewer`) whenever someone signs up
-   4. `editor_permissions.sql` — only needed if you already applied an
+   4. `audit_log.sql` — the `audit_log` table and the triggers that log
+      every create/edit/delete on entities, EIN records, licenses, and
+      insurance policies automatically
+   5. `editor_permissions.sql` — only needed if you already applied an
       older copy of `schema.sql`/`storage.sql` before the editor-role
       write policies existed. On a fresh project this is redundant
       (schema.sql/storage.sql already include it) — skip it.
@@ -71,8 +74,14 @@ admin) — so the very first admin has to be created directly in Supabase:
   signed URLs) or upload.
 - **Document upload** — the file input uses `capture="environment"`, so on
   a phone it offers the camera directly, not just the file picker.
-- **Admin panel** — create entities, create staff logins, set roles, and
-  grant/revoke per-entity access.
+- **Admin panel** — create entities, create staff logins, set roles,
+  grant/revoke per-entity access, and delete an entity (type-to-confirm,
+  removes its records and documents too).
+- **Audit log** (`/admin/audit-log`) — every create/edit/delete on
+  entities, EIN records, licenses, and insurance policies, logged
+  automatically by a database trigger rather than app code remembering
+  to call something. Shows who, what, which entity, and when, newest
+  first.
 
 ## Access model
 
@@ -95,6 +104,13 @@ A couple of things worth being explicit about:
   `*_write` policies in `schema.sql` and `storage.sql` — an editor's
   request for an entity they're not granted is rejected there regardless
   of what the UI shows.
+- **The audit log can't be written to directly, by anyone.** `audit_log`
+  has a select policy but no insert/update/delete policy at all — the
+  only way a row gets created is the trigger function in
+  `audit_log.sql`, which runs as a security-definer function and so
+  bypasses RLS. Reading it follows the same scoping as everything else:
+  admins see every entry, everyone else only entries for entities
+  they're granted.
 - If you applied an older copy of this schema before editor write access
   existed, run `supabase/editor_permissions.sql` once to patch it in —
   see the setup steps above.

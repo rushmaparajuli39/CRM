@@ -68,6 +68,21 @@ export type UserEntityAccess = {
   entity_id: string;
 };
 
+export type AuditAction = "create" | "update" | "delete";
+
+export type ChangedField = { before: unknown; after: unknown };
+
+export type AuditLog = {
+  id: string;
+  user_id: string | null;
+  action: AuditAction;
+  table_name: string;
+  record_id: string;
+  entity_id: string | null;
+  changed_fields: Record<string, ChangedField>;
+  created_at: string;
+};
+
 type Table<Row, Insert> = {
   Row: Row;
   Insert: Insert;
@@ -87,6 +102,13 @@ export type Database = {
       >;
       profiles: Table<Profile, Partial<Profile> & Pick<Profile, "id">>;
       user_entity_access: Table<UserEntityAccess, UserEntityAccess>;
+      // No app code ever inserts here — RLS has no write policy for
+      // audit_log at all, only the security-definer trigger can. The
+      // Insert type exists only so this table fits the same shape.
+      audit_log: Table<
+        AuditLog,
+        Partial<AuditLog> & Pick<AuditLog, "action" | "table_name" | "record_id">
+      >;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
