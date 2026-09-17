@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setUserRole, grantEntityAccess, revokeEntityAccess } from "@/lib/actions/admin";
+import { sendPasswordResetEmail } from "@/lib/actions/auth";
 import type { Entity, ProfileRole } from "@/lib/database.types";
 
 export default function UserAccessRow({
@@ -22,6 +23,19 @@ export default function UserAccessRow({
   const [pending, startTransition] = useTransition();
   const [access, setAccess] = useState(new Set(accessEntityIds));
   const [currentRole, setCurrentRole] = useState(role);
+  const [resetState, setResetState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  function sendReset() {
+    setResetState("sending");
+    startTransition(async () => {
+      try {
+        await sendPasswordResetEmail(email);
+        setResetState("sent");
+      } catch {
+        setResetState("error");
+      }
+    });
+  }
 
   function toggleEntity(entityId: string, checked: boolean) {
     setAccess((prev) => {
@@ -48,6 +62,20 @@ export default function UserAccessRow({
       <td className="py-3 pr-4">
         <p className="text-sm font-medium text-zinc-900">{fullName || email}</p>
         <p className="text-xs text-zinc-500">{email}</p>
+        <button
+          type="button"
+          onClick={sendReset}
+          disabled={resetState === "sending"}
+          className="mt-1 text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
+        >
+          {resetState === "sending"
+            ? "Sending…"
+            : resetState === "sent"
+              ? "Reset link sent ✓"
+              : resetState === "error"
+                ? "Failed — try again"
+                : "Send reset link"}
+        </button>
       </td>
       <td className="py-3 pr-4">
         <select

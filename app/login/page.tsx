@@ -1,3 +1,4 @@
+import Link from "next/link";
 import LoginForm from "./LoginForm";
 
 export default async function LoginPage({
@@ -15,6 +16,11 @@ export default async function LoginPage({
         <div className="mt-6">
           <LoginForm next={next ?? "/dashboard"} />
         </div>
+        <p className="mt-4 text-sm text-zinc-500">
+          <Link href="/forgot-password" className="font-medium text-zinc-700 hover:underline">
+            Forgot your password?
+          </Link>
+        </p>
       </div>
     </div>
   );

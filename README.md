@@ -65,9 +65,30 @@ admin) — so the very first admin has to be created directly in Supabase:
    entities, create logins for the rest of the staff, and grant them
    access to specific entities.
 
+## 5. Enable password-reset emails
+
+"Forgot your password?" on the login page, and the "Send reset link"
+button next to each user in the Admin panel, both call Supabase's
+`resetPasswordForEmail` — but Supabase will silently ignore the redirect
+target unless it's on an allowlist:
+
+1. Supabase dashboard → Authentication → URL Configuration → **Redirect
+   URLs** → add `https://your-deployed-domain.com/reset-password` (and
+   `http://localhost:3000/reset-password` too, if you want this to work
+   locally).
+2. That's it — no code change needed. The app builds the redirect URL
+   itself at request time from the domain it's actually running on
+   (`lib/site-url.ts`), so this is the only manual step.
+
+Without this, clicking the emailed link redirects to Supabase's default
+Site URL instead of the app's `/reset-password` page, and the reset
+silently fails to reach the right place.
+
 ## Features
 
-- **Login** — Supabase Auth (email/password).
+- **Login** — Supabase Auth (email/password), with self-service password
+  reset (`/forgot-password` → emailed link → `/reset-password`) and an
+  admin-triggered "Send reset link" per user in the Admin panel.
 - **Dashboard** — entities you have access to, plus an alert list of
   licenses/insurance policies expiring within 60 days (color-coded at the
   30-day mark).
