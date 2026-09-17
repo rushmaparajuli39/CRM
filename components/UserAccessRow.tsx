@@ -31,6 +31,7 @@ export default function UserAccessRow({
   const [access, setAccess] = useState(new Set(accessEntityIds));
   const [currentRole, setCurrentRole] = useState(role);
   const [resetState, setResetState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [resetError, setResetError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -56,12 +57,14 @@ export default function UserAccessRow({
 
   function sendReset() {
     setResetState("sending");
+    setResetError(null);
     startTransition(async () => {
       try {
         await sendPasswordResetEmail(email);
         setResetState("sent");
-      } catch {
+      } catch (e) {
         setResetState("error");
+        setResetError(e instanceof Error ? e.message : "Failed to send reset email.");
       }
     });
   }
@@ -119,6 +122,7 @@ export default function UserAccessRow({
             </button>
           )}
         </div>
+        {resetError && <p className="mt-1 text-xs text-red-600">{resetError}</p>}
         {deleteError && <p className="mt-1 text-xs text-red-600">{deleteError}</p>}
       </td>
       <td className="py-3 pr-4">
