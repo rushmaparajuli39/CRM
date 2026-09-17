@@ -6,7 +6,7 @@ import UserAccessRow from "@/components/UserAccessRow";
 import type { Entity, Profile, UserEntityAccess } from "@/lib/database.types";
 
 export default async function AdminPage() {
-  await requireAdmin();
+  const { user: currentUser } = await requireAdmin();
 
   const supabase = await createClient();
   const admin = await createAdminClient();
@@ -75,6 +75,7 @@ export default async function AdminPage() {
                   role={profile.role}
                   entities={(entities as Entity[] | null) ?? []}
                   accessEntityIds={accessByUser.get(profile.id) ?? []}
+                  isSelf={profile.id === currentUser.id}
                 />
               ))}
             </tbody>

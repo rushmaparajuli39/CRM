@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setUserRole, grantEntityAccess, revokeEntityAccess } from "@/lib/actions/admin";
+import {
+  setUserRole,
+  grantEntityAccess,
+  revokeEntityAccess,
+  deleteStaffUser,
+} from "@/lib/actions/admin";
 import { sendPasswordResetEmail } from "@/lib/actions/auth";
 import type { Entity, ProfileRole } from "@/lib/database.types";
 
@@ -12,6 +17,7 @@ export default function UserAccessRow({
   role,
   entities,
   accessEntityIds,
+  isSelf,
 }: {
   userId: string;
   email: string;
@@ -19,11 +25,34 @@ export default function UserAccessRow({
   role: ProfileRole;
   entities: Entity[];
   accessEntityIds: string[];
+  isSelf: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [access, setAccess] = useState(new Set(accessEntityIds));
   const [currentRole, setCurrentRole] = useState(role);
   const [resetState, setResetState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function handleDelete() {
+    if (
+      !window.confirm(
+        `Remove ${fullName || email}'s login? They'll no longer be able to sign in, and their entity access grants go with it. This can't be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeleteError(null);
+    setDeleting(true);
+    startTransition(async () => {
+      try {
+        await deleteStaffUser(userId);
+      } catch (e) {
+        setDeleteError(e instanceof Error ? e.message : "Failed to delete user.");
+        setDeleting(false);
+      }
+    });
+  }
 
   function sendReset() {
     setResetState("sending");
@@ -62,20 +91,35 @@ export default function UserAccessRow({
       <td className="py-3 pr-4">
         <p className="text-sm font-medium text-zinc-900">{fullName || email}</p>
         <p className="text-xs text-zinc-500">{email}</p>
-        <button
-          type="button"
-          onClick={sendReset}
-          disabled={resetState === "sending"}
-          className="mt-1 text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
-        >
-          {resetState === "sending"
-            ? "Sending…"
-            : resetState === "sent"
-              ? "Reset link sent ✓"
-              : resetState === "error"
-                ? "Failed — try again"
-                : "Send reset link"}
-        </button>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <button
+            type="button"
+            onClick={sendReset}
+            disabled={resetState === "sending"}
+            className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
+          >
+            {resetState === "sending"
+              ? "Sending…"
+              : resetState === "sent"
+                ? "Reset link sent ✓"
+                : resetState === "error"
+                  ? "Failed — try again"
+                  : "Send reset link"}
+          </button>
+          {isSelf ? (
+            <span className="text-xs text-zinc-400">(that&apos;s you)</span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+            >
+              {deleting ? "Deleting…" : "Delete user"}
+            </button>
+          )}
+        </div>
+        {deleteError && <p className="mt-1 text-xs text-red-600">{deleteError}</p>}
       </td>
       <td className="py-3 pr-4">
         <select

@@ -98,8 +98,8 @@ silently fails to reach the right place.
 - **Document upload** — the file input uses `capture="environment"`, so on
   a phone it offers the camera directly, not just the file picker.
 - **Admin panel** — create entities, create staff logins, set roles,
-  grant/revoke per-entity access, and delete an entity (type-to-confirm,
-  removes its records and documents too).
+  grant/revoke per-entity access, delete a staff login, and delete an
+  entity (type-to-confirm, removes its records and documents too).
 - **Audit log** (`/admin/audit-log`) — every create/edit/delete on
   entities, EIN records, licenses, and insurance policies, logged
   automatically by a database trigger rather than app code remembering

@@ -105,6 +105,27 @@ export async function revokeEntityAccess(userId: string, entityId: string) {
   revalidatePath("/admin");
 }
 
+// Permanently removes a staff login. profiles and user_entity_access
+// both reference auth.users(id) with `on delete cascade` (schema.sql),
+// and audit_log.user_id uses `on delete set null` deliberately (a
+// deleted user's past actions stay in the log, just unattributed) — so
+// deleting the auth user here is the only step needed; nothing else to
+// clean up by hand. Requires the service role key, same as creating a
+// user. Blocks deleting your own account — that's very unlikely to be
+// what was intended, and it's not reversible from inside the app.
+export async function deleteStaffUser(userId: string) {
+  const current = await requireAdmin();
+  if (current.user.id === userId) {
+    throw new Error("You can't delete your own account.");
+  }
+
+  const admin = await createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin");
+}
+
 // Creates a login for a new staff member. Requires the service role key
 // (admin API), since regular sign-up is for self-service and we want
 // admins to provision accounts directly. The new-user trigger in
