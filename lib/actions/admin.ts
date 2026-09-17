@@ -22,6 +22,53 @@ export async function createEntity(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+// Permanently deletes an entity and everything under it. ein_records/
+// licenses/insurance_policies/user_entity_access all reference entities
+// with `on delete cascade` (schema.sql), so the database rows go away on
+// their own — but their attached documents are files in Storage, which
+// no foreign key touches, so those are collected and removed explicitly
+// first. Admin-only both here and at the database (entities_write and
+// documents_delete in schema.sql/storage.sql only grant admins), and
+// gated on typing the entity's exact current name so a slip of the
+// mouse can't take out an entity's entire history.
+export async function deleteEntity(entityId: string, confirmName: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: entity, error: fetchError } = await supabase
+    .from("entities")
+    .select("id, name")
+    .eq("id", entityId)
+    .single();
+  if (fetchError || !entity) throw new Error("Entity not found.");
+
+  if (confirmName !== entity.name) {
+    throw new Error("The name you typed doesn't match this entity. Nothing was deleted.");
+  }
+
+  const [{ data: einRecords }, { data: licenses }, { data: policies }] = await Promise.all([
+    supabase.from("ein_records").select("document_url").eq("entity_id", entityId),
+    supabase.from("licenses").select("document_url").eq("entity_id", entityId),
+    supabase.from("insurance_policies").select("document_url").eq("entity_id", entityId),
+  ]);
+
+  const documentPaths = [...(einRecords ?? []), ...(licenses ?? []), ...(policies ?? [])]
+    .map((record) => record.document_url)
+    .filter((url): url is string => Boolean(url));
+
+  if (documentPaths.length > 0) {
+    // Best-effort: an object that's already missing shouldn't block
+    // deleting the entity.
+    await supabase.storage.from("documents").remove(documentPaths);
+  }
+
+  const { error: deleteError } = await supabase.from("entities").delete().eq("id", entityId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/admin");
+}
+
 export async function setUserRole(userId: string, role: ProfileRole) {
   await requireAdmin();
   const supabase = await createClient();

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { EinRecordCard, LicenseCard, InsuranceCard } from "@/components/RecordCard";
 import { AddEinForm, AddLicenseForm, AddInsuranceForm } from "@/components/AddRecordForms";
+import DeleteEntityButton from "@/components/DeleteEntityButton";
 import type { Entity, EinRecord, License, InsurancePolicy } from "@/lib/database.types";
 
 const TYPE_LABEL: Record<Entity["business_type"], string> = {
@@ -24,6 +25,10 @@ export default async function EntityDetailPage({
   // entity (admin, or a viewer/editor with a grant) — so whether this
   // user can write here comes down to their role alone.
   const canWrite = role === "admin" || role === "editor";
+  // Deleting the entity itself (not just records within it) is admin-only
+  // — editors are scoped to records on entities they're granted, never the
+  // entity's own lifecycle.
+  const isAdmin = role === "admin";
 
   const [{ data: entity }, { data: einRecords }, { data: licenses }, { data: policies }] =
     await Promise.all([
@@ -105,6 +110,12 @@ export default async function EntityDetailPage({
         </div>
         {canWrite && <AddInsuranceForm entityId={id} />}
       </section>
+
+      {isAdmin && (
+        <section>
+          <DeleteEntityButton entityId={id} entityName={entity.name} />
+        </section>
+      )}
     </div>
   );
 }
