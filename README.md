@@ -23,8 +23,10 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
       older copy of `schema.sql`/`storage.sql` before the editor-role
       write policies existed. On a fresh project this is redundant
       (schema.sql/storage.sql already include it) — skip it.
-3. In Project Settings → API, copy the Project URL, `anon` public key, and
-   `service_role` key.
+3. In Project Settings → API Keys, copy the Project URL, the
+   **Publishable** key, and the **Secret** key — the "Publishable and
+   secret API keys" tab, not "Legacy" (legacy anon/service_role JWT
+   keys are disabled on this project).
 
 ## 2. Configure the app
 
@@ -32,7 +34,7 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
 cp .env.local.example .env.local
 ```
 
-Fill in the three values from step 1.3. `SUPABASE_SERVICE_ROLE_KEY` is
+Fill in the three values from step 1.3. `SUPABASE_SECRET_KEY` is
 server-only (used by the Admin panel to create staff logins) — never
 expose it to the browser.
 
