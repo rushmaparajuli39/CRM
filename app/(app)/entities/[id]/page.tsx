@@ -1,10 +1,17 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { EinRecordCard, LicenseCard, InsuranceCard } from "@/components/RecordCard";
 import { AddEinForm, AddLicenseForm, AddInsuranceForm } from "@/components/AddRecordForms";
+import { CashSheetRow, AddCashSheetForm } from "@/components/CashSheets";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
-import type { Entity, EinRecord, License, InsurancePolicy } from "@/lib/database.types";
+import type {
+  Entity,
+  EinRecord,
+  License,
+  InsurancePolicy,
+  MonthlyCashSheet,
+} from "@/lib/database.types";
 
 export default async function EntityDetailPage({
   params,
@@ -24,29 +31,55 @@ export default async function EntityDetailPage({
   // entity's own lifecycle.
   const isAdmin = role === "admin";
 
-  const [{ data: entity }, { data: einRecords }, { data: licenses }, { data: policies }] =
-    await Promise.all([
-      supabase.from("entities").select("*").eq("id", id).single<Entity>(),
-      supabase
-        .from("ein_records")
-        .select("*")
-        .eq("entity_id", id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("licenses")
-        .select("*")
-        .eq("entity_id", id)
-        .order("expiration_date", { ascending: true, nullsFirst: false }),
-      supabase
-        .from("insurance_policies")
-        .select("*")
-        .eq("entity_id", id)
-        .order("expiration_date", { ascending: true, nullsFirst: false }),
-    ]);
+  const [
+    { data: entity },
+    { data: einRecords },
+    { data: licenses },
+    { data: policies },
+    { data: cashSheets },
+  ] = await Promise.all([
+    supabase.from("entities").select("*").eq("id", id).single<Entity>(),
+    supabase
+      .from("ein_records")
+      .select("*")
+      .eq("entity_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("licenses")
+      .select("*")
+      .eq("entity_id", id)
+      .order("expiration_date", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("insurance_policies")
+      .select("*")
+      .eq("entity_id", id)
+      .order("expiration_date", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("monthly_cash_sheets")
+      .select("*")
+      .eq("entity_id", id)
+      .order("period", { ascending: false }),
+  ]);
 
   // RLS makes this table return null rather than an error when the row is
   // inaccessible or doesn't exist — either way, show a 404.
   if (!entity) notFound();
+
+  // "Uploaded by" needs to show whoever uploaded each sheet, not just the
+  // current viewer — profiles_select only lets a non-admin read their own
+  // row, so resolving other people's names here goes through the admin
+  // client (display-name lookup only, no secret ever reaches the client).
+  const sheets = (cashSheets as MonthlyCashSheet[] | null) ?? [];
+  const uploaderIds = [...new Set(sheets.map((s) => s.uploaded_by).filter((v): v is string => Boolean(v)))];
+  let uploaderNameById = new Map<string, string>();
+  if (uploaderIds.length > 0) {
+    const admin = await createAdminClient();
+    const { data: uploaders } = await admin
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", uploaderIds);
+    uploaderNameById = new Map((uploaders ?? []).map((u) => [u.id, u.full_name ?? "Staff member"]));
+  }
 
   return (
     <div className="flex flex-col gap-10">
@@ -103,6 +136,27 @@ export default async function EntityDetailPage({
           )}
         </div>
         {canWrite && <AddInsuranceForm entityId={id} />}
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold text-zinc-900">Monthly cash sheets</h2>
+        <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+          {sheets.map((sheet) => (
+            <CashSheetRow
+              key={sheet.id}
+              entityId={id}
+              sheet={sheet}
+              uploaderName={
+                sheet.uploaded_by ? uploaderNameById.get(sheet.uploaded_by) ?? "Staff member" : "Unknown"
+              }
+              canDelete={isAdmin}
+            />
+          ))}
+          {sheets.length === 0 && (
+            <li className="px-4 py-3 text-sm text-zinc-500">No cash sheets uploaded yet.</li>
+          )}
+        </ul>
+        {canWrite && <AddCashSheetForm entityId={id} />}
       </section>
 
       {isAdmin && (

@@ -26,6 +26,8 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
    6. `free_text_business_type.sql` — same deal: only needed if you
       already applied an older `schema.sql` where `business_type` was
       still restricted to a fixed list. Fresh project: skip it.
+   7. `monthly_cash_sheets.sql` — the `monthly_cash_sheets` table, its RLS
+      policies, and the audit trigger for it.
 3. In Project Settings → API Keys, copy the Project URL, the
    **Publishable** key, and the **Secret** key — the "Publishable and
    secret API keys" tab, not "Legacy" (legacy anon/service_role JWT
@@ -87,6 +89,33 @@ Without this, clicking the emailed link redirects to Supabase's default
 Site URL instead of the app's `/reset-password` page, and the reset
 silently fails to reach the right place.
 
+## 6. Enable cash sheet email notifications
+
+The app sends its own emails for two things — a confirmation whenever a
+cash sheet is uploaded, and a monthly digest of entities missing one —
+using plain SMTP via `nodemailer`, **separate from** Supabase Auth's own
+SMTP settings above (those only cover Supabase's own emails).
+
+1. Add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, and
+   `EMAIL_FROM` to `.env.local` (and to Vercel's project settings for
+   production). The simplest option is to reuse the same Gmail account +
+   App Password you already set up in step 5 — see
+   [Google's guide](https://support.google.com/accounts/answer/185833) if
+   you haven't generated an App Password yet. Any other SMTP provider
+   works too.
+2. Add `CRON_SECRET` — any random string (`openssl rand -hex 32`) — to
+   both `.env.local` and Vercel's project settings. Vercel Cron
+   automatically sends it as a Bearer token when it calls the route
+   below, which is what stops anyone else from triggering it.
+3. `vercel.json` already schedules `/api/cron/missing-cash-sheets` to run
+   at 9am UTC on the 1st of each month (`0 9 1 * *`) — edit that cron
+   expression if you want a different day/time. Vercel Cron only runs on
+   a deployed project, not `next dev`.
+
+If these env vars are missing, cash sheet uploads and deletes still work
+fine — only the emails are skipped (a failed/misconfigured send is
+logged server-side but never blocks the upload itself).
+
 ## Features
 
 - **Login** — Supabase Auth (email/password), with self-service password
@@ -108,6 +137,15 @@ silently fails to reach the right place.
   automatically by a database trigger rather than app code remembering
   to call something. Shows who, what, which entity, and when, newest
   first.
+- **Monthly cash sheets** — a section on each entity's detail page for
+  uploading a monthly cash sheet (CSV, PDF, or photo), one per
+  entity/month. Editors (on entities they have access to) and admins can
+  upload; only admins can delete. Admins get two dashboard alert
+  sections — entities missing last month's cash sheet, and cash sheets
+  uploaded in the last 14 days — plus an email for each (upload
+  confirmations immediately, the missing-sheets digest via a monthly
+  Vercel Cron job). See "Enable cash sheet email notifications" above to
+  configure the emails.
 
 ## Access model
 
@@ -144,8 +182,10 @@ A couple of things worth being explicit about:
 ## Deploying
 
 Push to GitHub and import the repo on [Vercel](https://vercel.com) (free
-tier). Add the same three environment variables from `.env.local` in the
-Vercel project settings, then deploy.
+tier). Add the same environment variables from `.env.local` in the
+Vercel project settings, then deploy. `vercel.json` registers the
+monthly cash-sheets cron job automatically — no extra Vercel
+configuration needed beyond setting `CRON_SECRET`.
 
 ## Project structure
 
@@ -153,14 +193,18 @@ Vercel project settings, then deploy.
 app/                      Next.js App Router pages
   login/                  Public login page
   (app)/                  Everything behind auth (layout enforces it)
-    dashboard/            Entity list + expiration alerts
+    dashboard/            Entity list + expiration/cash-sheet alerts
     entities/[id]/        Entity detail: records + document upload
     admin/                Entity/user management
+  api/cron/               Vercel Cron routes (missing cash sheets digest)
 lib/
   supabase/               Browser/server Supabase clients + middleware
   actions/                Server Actions (mutations)
   database.types.ts       Hand-written types matching schema.sql
+  email.ts                nodemailer SMTP helper for app-sent notifications
+  notifications.ts        Admin email notifications (cash sheets)
 components/                UI components
 supabase/                  SQL to run in the Supabase SQL editor
+vercel.json                Vercel Cron schedule
 proxy.ts                   Auth-aware middleware (session refresh + route guard)
 ```

@@ -68,6 +68,19 @@ export type UserEntityAccess = {
   entity_id: string;
 };
 
+export type CashSheetSource = "manual" | "import";
+
+export type MonthlyCashSheet = {
+  id: string;
+  entity_id: string;
+  // Always the 1st of the month, e.g. "2026-08-01" for August 2026.
+  period: string;
+  document_url: string | null;
+  source: CashSheetSource;
+  uploaded_by: string | null;
+  created_at: string;
+};
+
 export type AuditAction = "create" | "update" | "delete";
 
 export type ChangedField = { before: unknown; after: unknown };
@@ -102,6 +115,10 @@ export type Database = {
       >;
       profiles: Table<Profile, Partial<Profile> & Pick<Profile, "id">>;
       user_entity_access: Table<UserEntityAccess, UserEntityAccess>;
+      monthly_cash_sheets: Table<
+        MonthlyCashSheet,
+        Partial<MonthlyCashSheet> & Pick<MonthlyCashSheet, "entity_id" | "period">
+      >;
       // No app code ever inserts here — RLS has no write policy for
       // audit_log at all, only the security-definer trigger can. The
       // Insert type exists only so this table fits the same shape.
