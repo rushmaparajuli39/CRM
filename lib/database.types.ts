@@ -6,14 +6,14 @@
 // and TypeScript only treats plain object type aliases (not interfaces) as
 // satisfying that check.
 
-export type BusinessType = "vape_shop" | "insurance_ops" | "parlor";
 export type EntityStatus = "active" | "closed";
 export type ProfileRole = "admin" | "editor" | "viewer";
 
 export type Entity = {
   id: string;
   name: string;
-  business_type: BusinessType;
+  // Free text — the admin's own label per entity, no fixed category list.
+  business_type: string;
   address: string | null;
   status: EntityStatus;
   notes: string | null;

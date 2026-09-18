@@ -32,14 +32,12 @@ export function CreateEntityForm() {
       </label>
       <label className={labelClass}>
         Business type
-        <select name="business_type" required className={inputClass} defaultValue="">
-          <option value="" disabled>
-            Select…
-          </option>
-          <option value="vape_shop">Vape Shop</option>
-          <option value="insurance_ops">Insurance Ops</option>
-          <option value="parlor">Parlor</option>
-        </select>
+        <input
+          name="business_type"
+          required
+          placeholder="e.g. Vape Shop"
+          className={inputClass}
+        />
       </label>
       <label className={labelClass}>
         Address

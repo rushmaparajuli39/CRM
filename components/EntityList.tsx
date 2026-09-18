@@ -1,12 +1,6 @@
 import Link from "next/link";
 import type { Entity } from "@/lib/database.types";
 
-const TYPE_LABEL: Record<Entity["business_type"], string> = {
-  vape_shop: "Vape Shop",
-  insurance_ops: "Insurance Ops",
-  parlor: "Parlor",
-};
-
 export default function EntityList({ entities }: { entities: Entity[] }) {
   if (entities.length === 0) {
     return (
@@ -32,7 +26,7 @@ export default function EntityList({ entities }: { entities: Entity[] }) {
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-zinc-500">{TYPE_LABEL[entity.business_type]}</p>
+          <p className="mt-1 text-sm text-zinc-500">{entity.business_type}</p>
           {entity.address && (
             <p className="mt-2 text-xs text-zinc-400">{entity.address}</p>
           )}

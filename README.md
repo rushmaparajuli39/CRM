@@ -23,6 +23,9 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
       older copy of `schema.sql`/`storage.sql` before the editor-role
       write policies existed. On a fresh project this is redundant
       (schema.sql/storage.sql already include it) — skip it.
+   6. `free_text_business_type.sql` — same deal: only needed if you
+      already applied an older `schema.sql` where `business_type` was
+      still restricted to a fixed list. Fresh project: skip it.
 3. In Project Settings → API Keys, copy the Project URL, the
    **Publishable** key, and the **Secret** key — the "Publishable and
    secret API keys" tab, not "Legacy" (legacy anon/service_role JWT

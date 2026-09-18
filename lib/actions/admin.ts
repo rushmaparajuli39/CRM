@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/current-user";
-import type { BusinessType, ProfileRole } from "@/lib/database.types";
+import type { ProfileRole } from "@/lib/database.types";
 
 export async function createEntity(formData: FormData) {
   await requireAdmin();
   const supabase = await createClient();
 
   const name = String(formData.get("name") || "").trim();
-  const business_type = String(formData.get("business_type") || "") as BusinessType;
+  const business_type = String(formData.get("business_type") || "").trim();
   const address = String(formData.get("address") || "").trim() || null;
 
   if (!name || !business_type) throw new Error("Name and business type are required.");

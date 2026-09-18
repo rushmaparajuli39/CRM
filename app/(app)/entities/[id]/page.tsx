@@ -6,12 +6,6 @@ import { AddEinForm, AddLicenseForm, AddInsuranceForm } from "@/components/AddRe
 import DeleteEntityButton from "@/components/DeleteEntityButton";
 import type { Entity, EinRecord, License, InsurancePolicy } from "@/lib/database.types";
 
-const TYPE_LABEL: Record<Entity["business_type"], string> = {
-  vape_shop: "Vape Shop",
-  insurance_ops: "Insurance Ops",
-  parlor: "Parlor",
-};
-
 export default async function EntityDetailPage({
   params,
 }: {
@@ -66,7 +60,7 @@ export default async function EntityDetailPage({
           )}
         </div>
         <p className="mt-1 text-sm text-zinc-500">
-          {TYPE_LABEL[entity.business_type]}
+          {entity.business_type}
           {entity.address ? ` · ${entity.address}` : ""}
         </p>
         {entity.notes && <p className="mt-2 text-sm text-zinc-600">{entity.notes}</p>}

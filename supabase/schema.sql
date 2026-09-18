@@ -6,7 +6,7 @@
 create table entities (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  business_type text not null check (business_type in ('vape_shop','insurance_ops','parlor')),
+  business_type text not null, -- free text, admin's own label — no fixed category list
   address text,
   status text not null default 'active' check (status in ('active','closed')),
   notes text,
