@@ -86,8 +86,13 @@ export default function ResetPasswordForm() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
 
+      // updateUser() leaves the recovery session active — sign out so
+      // the user lands on /login and actually authenticates with the
+      // new password, rather than being silently carried into the app.
+      await supabase.auth.signOut();
+
       setDone(true);
-      setTimeout(() => router.push("/dashboard"), 1500);
+      setTimeout(() => router.push("/login?reset=success"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update your password.");
     } finally {
@@ -102,7 +107,7 @@ export default function ResetPasswordForm() {
   if (done) {
     return (
       <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
-        Password updated — taking you to the dashboard…
+        Password updated — taking you to sign in…
       </p>
     );
   }
