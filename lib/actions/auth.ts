@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createPasswordResetClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/site-url";
 
 export async function signIn(_prevState: { error: string } | null, formData: FormData) {
@@ -35,7 +35,7 @@ export async function signOut() {
 // staff email and who isn't) — real failures (rate limiting, a Supabase
 // outage) still throw normally.
 export async function sendPasswordResetEmail(email: string) {
-  const supabase = await createClient();
+  const supabase = await createPasswordResetClient();
   const siteUrl = await getSiteUrl();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {

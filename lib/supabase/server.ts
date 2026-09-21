@@ -11,16 +11,6 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
-      // PKCE (the @supabase/ssr default) ties resetPasswordForEmail's
-      // link to a code_verifier cookie on whichever browser submitted
-      // the request — but a password-reset email is almost always
-      // opened on a different device (phone Mail app vs. the desktop
-      // browser that asked for it), so PKCE fails there with "code
-      // verifier not found in storage". This app has no OAuth or public
-      // sign-up (the only other flowType-gated methods), so switching to
-      // implicit is safe here and makes the recovery link self-contained
-      // — no matching local state required on either end.
-      auth: { flowType: "implicit" },
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -49,5 +39,27 @@ export async function createAdminClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SECRET_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
+// Used only for resetPasswordForEmail. createClient() above (@supabase/ssr's
+// createServerClient) hardcodes `flowType: "pkce"` internally and ignores
+// any override passed in — it's spread after the caller's own auth
+// options in @supabase/ssr's source, so passing flowType there silently
+// does nothing. PKCE ties the emailed link's `?code=` to a code_verifier
+// cookie on whichever browser submitted the request, which fails with
+// "code verifier not found in storage" the moment the link is opened on
+// a different device — the normal case for an emailed link. This call
+// needs no cookies or session at all (it's a one-off, unauthenticated
+// request), so it bypasses @supabase/ssr entirely for a plain client,
+// where flowType is actually respected — implicit is in fact
+// @supabase/auth-js's own default, so this is spelled out for clarity
+// rather than to override anything.
+export async function createPasswordResetClient() {
+  const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    { auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false } }
   );
 }
