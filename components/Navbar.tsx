@@ -14,9 +14,17 @@ export default function Navbar({ profile }: { profile: Profile | null }) {
             Dashboard
           </Link>
           {profile?.role === "admin" && (
-            <Link href="/admin" className="text-sm text-zinc-600 hover:text-zinc-900">
-              Admin
-            </Link>
+            <>
+              <Link href="/admin" className="text-sm text-zinc-600 hover:text-zinc-900">
+                Admin
+              </Link>
+              <Link
+                href="/admin/audit-log"
+                className="text-sm text-zinc-600 hover:text-zinc-900"
+              >
+                Audit Log
+              </Link>
+            </>
           )}
         </nav>
         <div className="flex items-center gap-3">

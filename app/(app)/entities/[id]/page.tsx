@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
@@ -5,6 +6,7 @@ import { EinRecordCard, LicenseCard, InsuranceCard } from "@/components/RecordCa
 import { AddEinForm, AddLicenseForm, AddInsuranceForm } from "@/components/AddRecordForms";
 import { CashSheetRow, AddCashSheetForm } from "@/components/CashSheets";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
+import { expiryUrgency } from "@/lib/expiration";
 import type {
   Entity,
   EinRecord,
@@ -81,10 +83,23 @@ export default async function EntityDetailPage({
     uploaderNameById = new Map((uploaders ?? []).map((u) => [u.id, u.full_name ?? "Staff member"]));
   }
 
+  const einCount = einRecords?.length ?? 0;
+  const licenseCount = licenses?.length ?? 0;
+  const policyCount = policies?.length ?? 0;
+  const expiringCount = [...(licenses ?? []), ...(policies ?? [])].filter(
+    (r) => expiryUrgency(r.expiration_date) !== null
+  ).length;
+  const hasCashSheetThisMonth = sheets.some(
+    (s) => s.period.slice(0, 7) === new Date().toISOString().slice(0, 7)
+  );
+
   return (
     <div className="flex flex-col gap-10">
       <div>
-        <div className="flex items-center gap-3">
+        <Link href="/dashboard" className="text-sm text-zinc-500 hover:text-zinc-900">
+          ← Back to dashboard
+        </Link>
+        <div className="mt-2 flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-zinc-900">{entity.name}</h1>
           {entity.status === "closed" && (
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
@@ -97,6 +112,32 @@ export default async function EntityDetailPage({
           {entity.address ? ` · ${entity.address}` : ""}
         </p>
         {entity.notes && <p className="mt-2 text-sm text-zinc-600">{entity.notes}</p>}
+
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-zinc-100 px-2 py-1 font-medium text-zinc-600">
+            {einCount} EIN {einCount === 1 ? "record" : "records"}
+          </span>
+          <span className="rounded-full bg-zinc-100 px-2 py-1 font-medium text-zinc-600">
+            {licenseCount} {licenseCount === 1 ? "license" : "licenses"}
+          </span>
+          <span className="rounded-full bg-zinc-100 px-2 py-1 font-medium text-zinc-600">
+            {policyCount} insurance {policyCount === 1 ? "policy" : "policies"}
+          </span>
+          {expiringCount > 0 && (
+            <span className="rounded-full bg-orange-100 px-2 py-1 font-medium text-orange-800">
+              {expiringCount} expiring soon
+            </span>
+          )}
+          <span
+            className={`rounded-full px-2 py-1 font-medium ${
+              hasCashSheetThisMonth
+                ? "bg-green-100 text-green-800"
+                : "bg-zinc-100 text-zinc-600"
+            }`}
+          >
+            {hasCashSheetThisMonth ? "Cash sheet on file this month" : "No cash sheet this month yet"}
+          </span>
+        </div>
       </div>
 
       <section className="flex flex-col gap-4">

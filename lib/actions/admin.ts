@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/current-user";
+import { sendPasswordResetEmail } from "@/lib/actions/auth";
 import type { ProfileRole } from "@/lib/database.types";
 
 export async function createEntity(formData: FormData) {
@@ -130,6 +131,12 @@ export async function deleteStaffUser(userId: string) {
 // (admin API), since regular sign-up is for self-service and we want
 // admins to provision accounts directly. The new-user trigger in
 // supabase/triggers.sql gives them a 'viewer' profile automatically.
+//
+// The admin-set password here is a fallback the admin can relay directly
+// if needed, but the new hire never has to be told it: right after the
+// account exists, this sends them the same "set your password" email as
+// the self-service reset flow, so they can pick their own password from
+// their inbox instead of being handed one out of band.
 export async function inviteStaffUser(formData: FormData) {
   await requireAdmin();
 
@@ -151,6 +158,15 @@ export async function inviteStaffUser(formData: FormData) {
 
   if (full_name && data.user) {
     await admin.from("profiles").update({ full_name }).eq("id", data.user.id);
+  }
+
+  // Best-effort: a failed email shouldn't undo account creation — the
+  // admin still has the temporary password to relay manually if this
+  // doesn't go through, and can also use "Send reset link" afterward.
+  try {
+    await sendPasswordResetEmail(email);
+  } catch (e) {
+    console.error("Failed to send welcome/reset email to new staff user:", e);
   }
 
   revalidatePath("/admin");
