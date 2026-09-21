@@ -27,7 +27,13 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
       already applied an older `schema.sql` where `business_type` was
       still restricted to a fixed list. Fresh project: skip it.
    7. `monthly_cash_sheets.sql` — the `monthly_cash_sheets` table, its RLS
-      policies, and the audit trigger for it.
+      policies, and the audit trigger for it. Depends on `has_entity_access()`
+      from `schema.sql` — if this fails with `function has_entity_access(uuid)
+      does not exist`, run #8 first, then retry this one.
+   8. `rls_helper_functions.sql` — only needed if `is_admin()`, `is_editor()`,
+      or `has_entity_access()` are missing (schema.sql already defines them
+      on a fresh project — skip it unless you hit a "function ... does not
+      exist" error). Safe to run any number of times.
 3. In Project Settings → API Keys, copy the Project URL, the
    **Publishable** key, and the **Secret** key — the "Publishable and
    secret API keys" tab, not "Legacy" (legacy anon/service_role JWT
