@@ -11,6 +11,16 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      // PKCE (the @supabase/ssr default) ties resetPasswordForEmail's
+      // link to a code_verifier cookie on whichever browser submitted
+      // the request — but a password-reset email is almost always
+      // opened on a different device (phone Mail app vs. the desktop
+      // browser that asked for it), so PKCE fails there with "code
+      // verifier not found in storage". This app has no OAuth or public
+      // sign-up (the only other flowType-gated methods), so switching to
+      // implicit is safe here and makes the recovery link self-contained
+      // — no matching local state required on either end.
+      auth: { flowType: "implicit" },
       cookies: {
         getAll() {
           return cookieStore.getAll();
