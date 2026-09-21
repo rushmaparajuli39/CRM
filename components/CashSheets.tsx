@@ -113,12 +113,12 @@ export function AddCashSheetForm({ entityId }: { entityId: string }) {
         <input name="period" type="month" required className={inputClass} />
       </label>
       <label className={labelClass}>
-        File (CSV, PDF, or photo)
+        File (Excel, CSV, PDF, or photo)
         <input
           name="file"
           type="file"
           required
-          accept=".csv,text/csv,image/*,application/pdf"
+          accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xls,application/vnd.ms-excel,.ods,application/vnd.oasis.opendocument.spreadsheet,image/*,application/pdf"
           capture="environment"
           className={inputClass}
         />

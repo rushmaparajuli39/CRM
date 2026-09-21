@@ -144,7 +144,7 @@ logged server-side but never blocks the upload itself).
   to call something. Shows who, what, which entity, and when, newest
   first.
 - **Monthly cash sheets** — a section on each entity's detail page for
-  uploading a monthly cash sheet (CSV, PDF, or photo), one per
+  uploading a monthly cash sheet (Excel, CSV, PDF, or photo), one per
   entity/month. Editors (on entities they have access to) and admins can
   upload; only admins can delete. Admins get two dashboard alert
   sections — entities missing last month's cash sheet, and cash sheets
