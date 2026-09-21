@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { FileText, ScrollText, ShieldCheck, Receipt } from "lucide-react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { EinRecordCard, LicenseCard, InsuranceCard } from "@/components/RecordCard";
 import { AddEinForm, AddLicenseForm, AddInsuranceForm } from "@/components/AddRecordForms";
 import { CashSheetRow, AddCashSheetForm } from "@/components/CashSheets";
 import DeleteEntityButton from "@/components/DeleteEntityButton";
+import SectionHeader from "@/components/ui/SectionHeader";
+import EmptyState from "@/components/ui/EmptyState";
 import { expiryUrgency } from "@/lib/expiration";
 import type {
   Entity,
@@ -14,6 +18,17 @@ import type {
   InsurancePolicy,
   MonthlyCashSheet,
 } from "@/lib/database.types";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: entity } = await supabase.from("entities").select("name").eq("id", id).single();
+  return { title: entity?.name ?? "Entity" };
+}
 
 export default async function EntityDetailPage({
   params,
@@ -141,62 +156,66 @@ export default async function EntityDetailPage({
       </div>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-zinc-900">EIN records</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(einRecords as EinRecord[] | null)?.map((rec) => (
-            <EinRecordCard key={rec.id} entityId={id} record={rec} canEdit={canWrite} />
-          ))}
-          {(!einRecords || einRecords.length === 0) && (
-            <p className="text-sm text-zinc-500">No EIN records yet.</p>
-          )}
-        </div>
+        <SectionHeader icon={FileText} title="EIN records" />
+        {einCount === 0 ? (
+          <EmptyState icon={FileText} message="No EIN records yet." />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(einRecords as EinRecord[]).map((rec) => (
+              <EinRecordCard key={rec.id} entityId={id} record={rec} canEdit={canWrite} />
+            ))}
+          </div>
+        )}
         {canWrite && <AddEinForm entityId={id} />}
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-zinc-900">Licenses</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(licenses as License[] | null)?.map((lic) => (
-            <LicenseCard key={lic.id} entityId={id} record={lic} canEdit={canWrite} />
-          ))}
-          {(!licenses || licenses.length === 0) && (
-            <p className="text-sm text-zinc-500">No licenses yet.</p>
-          )}
-        </div>
+        <SectionHeader icon={ScrollText} title="Licenses" />
+        {licenseCount === 0 ? (
+          <EmptyState icon={ScrollText} message="No licenses yet." />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(licenses as License[]).map((lic) => (
+              <LicenseCard key={lic.id} entityId={id} record={lic} canEdit={canWrite} />
+            ))}
+          </div>
+        )}
         {canWrite && <AddLicenseForm entityId={id} />}
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-zinc-900">Insurance policies</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(policies as InsurancePolicy[] | null)?.map((pol) => (
-            <InsuranceCard key={pol.id} entityId={id} record={pol} canEdit={canWrite} />
-          ))}
-          {(!policies || policies.length === 0) && (
-            <p className="text-sm text-zinc-500">No insurance policies yet.</p>
-          )}
-        </div>
+        <SectionHeader icon={ShieldCheck} title="Insurance policies" />
+        {policyCount === 0 ? (
+          <EmptyState icon={ShieldCheck} message="No insurance policies yet." />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {(policies as InsurancePolicy[]).map((pol) => (
+              <InsuranceCard key={pol.id} entityId={id} record={pol} canEdit={canWrite} />
+            ))}
+          </div>
+        )}
         {canWrite && <AddInsuranceForm entityId={id} />}
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-zinc-900">Monthly cash sheets</h2>
-        <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
-          {sheets.map((sheet) => (
-            <CashSheetRow
-              key={sheet.id}
-              entityId={id}
-              sheet={sheet}
-              uploaderName={
-                sheet.uploaded_by ? uploaderNameById.get(sheet.uploaded_by) ?? "Staff member" : "Unknown"
-              }
-              canDelete={isAdmin}
-            />
-          ))}
-          {sheets.length === 0 && (
-            <li className="px-4 py-3 text-sm text-zinc-500">No cash sheets uploaded yet.</li>
-          )}
-        </ul>
+        <SectionHeader icon={Receipt} title="Monthly cash sheets" />
+        {sheets.length === 0 ? (
+          <EmptyState icon={Receipt} message="No cash sheets uploaded yet." />
+        ) : (
+          <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white shadow-sm">
+            {sheets.map((sheet) => (
+              <CashSheetRow
+                key={sheet.id}
+                entityId={id}
+                sheet={sheet}
+                uploaderName={
+                  sheet.uploaded_by ? uploaderNameById.get(sheet.uploaded_by) ?? "Staff member" : "Unknown"
+                }
+                canDelete={isAdmin}
+              />
+            ))}
+          </ul>
+        )}
         {canWrite && <AddCashSheetForm entityId={id} />}
       </section>
 

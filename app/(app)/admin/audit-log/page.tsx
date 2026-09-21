@@ -1,7 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { History } from "lucide-react";
 import { requireAdmin } from "@/lib/current-user";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import SectionHeader from "@/components/ui/SectionHeader";
+import EmptyState from "@/components/ui/EmptyState";
 import type { AuditLog, Entity } from "@/lib/database.types";
+
+export const metadata: Metadata = { title: "Audit Log" };
 
 const PAGE_SIZE = 25;
 
@@ -80,17 +86,16 @@ export default async function AuditLogPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-zinc-900">Audit log</h1>
-        </div>
-        <p className="mt-1 text-sm text-zinc-500">
-          Every create, edit, and delete across entities, EIN records, licenses, and insurance
-          policies — recorded automatically at the database, newest first.
-        </p>
-      </div>
+      <SectionHeader
+        icon={History}
+        title="Audit log"
+        subtitle="Every create, edit, and delete across entities, EIN records, licenses, and insurance policies — recorded automatically at the database, newest first."
+      />
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
+        {entries.length === 0 ? (
+          <EmptyState icon={History} message="No activity recorded yet." />
+        ) : (
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-zinc-200 text-xs font-medium uppercase text-zinc-400">
@@ -147,8 +152,6 @@ export default async function AuditLogPage({
             ))}
           </tbody>
         </table>
-        {entries.length === 0 && (
-          <p className="px-4 py-6 text-sm text-zinc-500">No activity recorded yet.</p>
         )}
       </div>
 

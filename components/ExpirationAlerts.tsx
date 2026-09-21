@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { CalendarCheck } from "lucide-react";
 import { expiryUrgency, expiryLabel, expiryBadgeClasses } from "@/lib/expiration";
+import EmptyState from "@/components/ui/EmptyState";
 
 export interface ExpiringItem {
   id: string;
@@ -12,11 +14,7 @@ export interface ExpiringItem {
 
 export default function ExpirationAlerts({ items }: { items: ExpiringItem[] }) {
   if (items.length === 0) {
-    return (
-      <p className="text-sm text-zinc-500">
-        Nothing expiring in the next 60 days.
-      </p>
-    );
+    return <EmptyState icon={CalendarCheck} message="Nothing expiring in the next 60 days." />;
   }
 
   const sorted = [...items].sort(
@@ -24,7 +22,7 @@ export default function ExpirationAlerts({ items }: { items: ExpiringItem[] }) {
   );
 
   return (
-    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white shadow-sm">
       {sorted.map((item) => {
         const urgency = expiryUrgency(item.expiration_date);
         return (

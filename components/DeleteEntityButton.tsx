@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { deleteEntity } from "@/lib/actions/admin";
 
 type ActionState = { error: string } | null;
@@ -32,7 +33,9 @@ export default function DeleteEntityButton({
   if (!confirming) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50/50 p-4">
-        <p className="text-sm font-medium text-red-900">Danger zone</p>
+        <p className="flex items-center gap-2 text-sm font-medium text-red-900">
+          <AlertTriangle className="h-4 w-4" /> Danger zone
+        </p>
         <p className="mt-1 text-sm text-red-700">
           Permanently delete this entity and everything under it.
         </p>
@@ -51,7 +54,9 @@ export default function DeleteEntityButton({
 
   return (
     <div className="rounded-lg border border-red-300 bg-red-50 p-4">
-      <p className="text-sm font-medium text-red-900">Danger zone</p>
+      <p className="flex items-center gap-2 text-sm font-medium text-red-900">
+        <AlertTriangle className="h-4 w-4" /> Danger zone
+      </p>
       <p className="mt-1 text-sm text-red-800">
         This permanently deletes <span className="font-medium">{entityName}</span> — its EIN
         record, every license, every insurance policy, and every uploaded document. This cannot

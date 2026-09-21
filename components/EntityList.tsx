@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Building2, SearchX } from "lucide-react";
+import EmptyState from "@/components/ui/EmptyState";
 import type { Entity } from "@/lib/database.types";
 
 export default function EntityList({ entities }: { entities: Entity[] }) {
@@ -20,9 +22,10 @@ export default function EntityList({ entities }: { entities: Entity[] }) {
 
   if (entities.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">
-        No entities are visible to your account yet. Ask an admin to grant access.
-      </p>
+      <EmptyState
+        icon={Building2}
+        message="No entities are visible to your account yet. Ask an admin to grant access."
+      />
     );
   }
 
@@ -39,7 +42,7 @@ export default function EntityList({ entities }: { entities: Entity[] }) {
       )}
 
       {filtered.length === 0 ? (
-        <p className="text-sm text-zinc-500">No entities match &ldquo;{query}&rdquo;.</p>
+        <EmptyState icon={SearchX} message={`No entities match "${query}".`} />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((entity) => (

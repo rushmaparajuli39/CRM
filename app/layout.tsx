@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Entity Document CRM",
+  title: {
+    default: "Entity Document CRM",
+    template: "%s · Entity Document CRM",
+  },
   description: "Document tracking for entity licenses, EIN records, and insurance.",
 };
 

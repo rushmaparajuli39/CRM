@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { FileCheck2, Receipt } from "lucide-react";
 import { formatPeriodLabel } from "@/lib/period";
+import EmptyState from "@/components/ui/EmptyState";
 
 export interface MissingCashSheetItem {
   entity_id: string;
@@ -16,11 +18,11 @@ export function MissingCashSheetsAlert({
   const label = formatPeriodLabel(period);
 
   if (items.length === 0) {
-    return <p className="text-sm text-zinc-500">Every entity has a cash sheet on file for {label}.</p>;
+    return <EmptyState icon={FileCheck2} message={`Every entity has a cash sheet on file for ${label}.`} />;
   }
 
   return (
-    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white shadow-sm">
       {items.map((item) => (
         <li key={item.entity_id} className="flex items-center justify-between gap-4 px-4 py-3">
           <Link
@@ -48,11 +50,11 @@ export interface RecentCashSheetItem {
 
 export function RecentCashSheetsAlert({ items }: { items: RecentCashSheetItem[] }) {
   if (items.length === 0) {
-    return <p className="text-sm text-zinc-500">No cash sheets uploaded in the last 14 days.</p>;
+    return <EmptyState icon={Receipt} message="No cash sheets uploaded in the last 14 days." />;
   }
 
   return (
-    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white">
+    <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-white shadow-sm">
       {items.map((item) => (
         <li key={item.id} className="flex items-center justify-between gap-4 px-4 py-3">
           <div className="min-w-0">
