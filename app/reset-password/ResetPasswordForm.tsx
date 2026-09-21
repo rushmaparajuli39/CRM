@@ -4,38 +4,59 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// Supabase can deliver a recovery link in more than one shape depending
-// on the project's auth settings: a `#access_token=...&type=recovery`
-// hash (the classic flow — the browser client picks this up on its own
-// the moment it's constructed), or a `?code=...` query param (PKCE —
-// has to be exchanged explicitly). It can also redirect here with
-// `?error=...&error_description=...` instead of either, when the link
-// itself was already used or has expired. This component checks for
-// all three up front, before showing the form, instead of only finding
-// out something's wrong once the user has typed a password and hit
-// submit.
+// Supabase can deliver a recovery link in more than one shape:
+// - `?token_hash=...&type=recovery` — the preferred shape (see the
+//   Supabase email template, which now points here instead of straight
+//   to Supabase's own /auth/v1/verify). Verification is held behind an
+//   explicit "Continue" click rather than firing the moment this page
+//   loads, because email providers' background link-scanning (Gmail
+//   included, not just corporate "Safe Links") visits every link in an
+//   incoming email within seconds of it arriving — if verifying the
+//   single-use token happened automatically on page load, that scan
+//   burns it before the recipient ever clicks it themselves. A plain
+//   GET from a scanner never fires a click event, so the token stays
+//   good until a human actually presses the button.
+// - `#access_token=...&type=recovery` (hash) or `?code=...` (PKCE) —
+//   kept as fallbacks for links already in an inbox from before the
+//   template switched over, or if Supabase's own default template is
+//   ever restored. Both verify automatically, same as before, since
+//   there's no way to defer verification with those shapes.
+// - `?error=...&error_description=...` — the link was already used or
+//   has expired.
 function friendlyLinkError(description: string | null): string {
   if (description) return decodeURIComponent(description.replace(/\+/g, " "));
   return "This reset link is invalid or has expired. Request a new one from the sign-in page.";
 }
 
+type LinkState =
+  | { kind: "checking" }
+  | { kind: "confirm"; tokenHash: string; type: string }
+  | { kind: "verifying" }
+  | { kind: "ready" }
+  | { kind: "error"; message: string };
+
 export default function ResetPasswordForm() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [ready, setReady] = useState(false);
+  const [link, setLink] = useState<LinkState>({ kind: "checking" });
 
   useEffect(() => {
-    async function verifyLink() {
+    async function checkLink() {
       const params = new URLSearchParams(window.location.search);
       const errorDescription = params.get("error_description");
       if (params.get("error")) {
-        setError(friendlyLinkError(errorDescription));
-        setChecking(false);
+        setLink({ kind: "error", message: friendlyLinkError(errorDescription) });
+        return;
+      }
+
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+      if (tokenHash && type) {
+        setLink({ kind: "confirm", tokenHash, type });
         return;
       }
 
@@ -44,8 +65,7 @@ export default function ResetPasswordForm() {
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) {
-          setError(friendlyLinkError(exchangeError.message));
-          setChecking(false);
+          setLink({ kind: "error", message: friendlyLinkError(exchangeError.message) });
           return;
         }
       }
@@ -56,27 +76,40 @@ export default function ResetPasswordForm() {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (!session) {
-        setError(friendlyLinkError(null));
-      } else {
-        setReady(true);
-      }
-      setChecking(false);
+      setLink(session ? { kind: "ready" } : { kind: "error", message: friendlyLinkError(null) });
     }
 
-    verifyLink();
+    checkLink();
   }, []);
+
+  async function handleConfirm() {
+    if (link.kind !== "confirm") return;
+    const { tokenHash, type } = link;
+    setLink({ kind: "verifying" });
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type as "recovery",
+    });
+
+    if (error) {
+      setLink({ kind: "error", message: friendlyLinkError(error.message) });
+    } else {
+      setLink({ kind: "ready" });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setFormError("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
-      setError("Passwords don't match.");
+      setFormError("Passwords don't match.");
       return;
     }
 
@@ -94,14 +127,33 @@ export default function ResetPasswordForm() {
       setDone(true);
       setTimeout(() => router.push("/login?reset=success"), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update your password.");
+      setFormError(err instanceof Error ? err.message : "Failed to update your password.");
     } finally {
       setPending(false);
     }
   }
 
-  if (checking) {
+  if (link.kind === "checking") {
     return <p className="text-sm text-zinc-500">Checking your reset link…</p>;
+  }
+
+  if (link.kind === "confirm") {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-zinc-600">Click below to continue resetting your password.</p>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+        >
+          Continue
+        </button>
+      </div>
+    );
+  }
+
+  if (link.kind === "verifying") {
+    return <p className="text-sm text-zinc-500">Verifying your reset link…</p>;
   }
 
   if (done) {
@@ -112,10 +164,10 @@ export default function ResetPasswordForm() {
     );
   }
 
-  if (!ready) {
+  if (link.kind === "error") {
     return (
       <div className="flex flex-col gap-3">
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{link.message}</p>
         <a href="/forgot-password" className="text-sm font-medium text-zinc-700 hover:underline">
           ← Request a new reset link
         </a>
@@ -155,7 +207,7 @@ export default function ResetPasswordForm() {
         />
       </div>
 
-      {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
 
       <button
         type="submit"
