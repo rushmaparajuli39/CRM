@@ -157,3 +157,15 @@ create policy "access_select" on user_entity_access for select
 
 create policy "access_write" on user_entity_access for all
   using (is_admin()) with check (is_admin());
+
+-- ========== MIGRATION TRACKING ==========
+-- Records that this file has been applied, so "what's been run on this
+-- database" is a query instead of a guess. Safe to run any number of
+-- times. See the bottom of every other file in this directory for the
+-- same pattern — check what's applied with:
+--   select * from _migrations order by applied_at;
+create table if not exists _migrations (
+  id text primary key,
+  applied_at timestamptz not null default now()
+);
+insert into _migrations (id) values ('schema.sql') on conflict (id) do nothing;

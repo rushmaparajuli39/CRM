@@ -32,3 +32,10 @@ create or replace function has_entity_access(target_entity_id uuid) returns bool
     where user_id = auth.uid() and entity_id = target_entity_id
   );
 $$ language sql security definer;
+
+-- Migration tracking — see schema.sql for the full explanation.
+create table if not exists _migrations (
+  id text primary key,
+  applied_at timestamptz not null default now()
+);
+insert into _migrations (id) values ('rls_helper_functions.sql') on conflict (id) do nothing;

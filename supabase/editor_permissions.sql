@@ -78,3 +78,10 @@ create policy "documents_delete" on storage.objects for delete
       or (is_editor() and has_entity_access((storage.foldername(name))[1]::uuid))
     )
   );
+
+-- Migration tracking — see schema.sql for the full explanation.
+create table if not exists _migrations (
+  id text primary key,
+  applied_at timestamptz not null default now()
+);
+insert into _migrations (id) values ('editor_permissions.sql') on conflict (id) do nothing;

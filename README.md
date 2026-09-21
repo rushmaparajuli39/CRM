@@ -34,6 +34,16 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
       or `has_entity_access()` are missing (schema.sql already defines them
       on a fresh project — skip it unless you hit a "function ... does not
       exist" error). Safe to run any number of times.
+
+   Every file above registers itself in a `_migrations` table once it
+   runs, so you never have to guess what's already been applied to a
+   given database — check with:
+   ```sql
+   select * from _migrations order by applied_at;
+   ```
+   Missing a row you expect? Run that file. A file not in this list
+   (or an ad-hoc fix given to you outside these files) won't show up
+   here — this only tracks the files in `supabase/`.
 3. In Project Settings → API Keys, copy the Project URL, the
    **Publishable** key, and the **Secret** key — the "Publishable and
    secret API keys" tab, not "Legacy" (legacy anon/service_role JWT
@@ -192,6 +202,15 @@ tier). Add the same environment variables from `.env.local` in the
 Vercel project settings, then deploy. `vercel.json` registers the
 monthly cash-sheets cron job automatically — no extra Vercel
 configuration needed beyond setting `CRON_SECRET`.
+
+## CI
+
+Every push and pull request runs type-checking, linting, and a full
+production build (`.github/workflows/ci.yml`) — so a build that's
+actually broken shows up as a red X on GitHub before it ever reaches
+Vercel, instead of being discovered live. It doesn't touch Supabase or
+run any tests against real data; it's a build-health check, not a
+correctness check.
 
 ## Project structure
 

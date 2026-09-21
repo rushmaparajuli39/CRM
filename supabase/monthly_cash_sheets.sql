@@ -54,3 +54,10 @@ create policy "cash_sheets_delete" on monthly_cash_sheets for delete
 create trigger audit_monthly_cash_sheets
   after insert or update or delete on monthly_cash_sheets
   for each row execute function log_audit_event();
+
+-- Migration tracking — see schema.sql for the full explanation.
+create table if not exists _migrations (
+  id text primary key,
+  applied_at timestamptz not null default now()
+);
+insert into _migrations (id) values ('monthly_cash_sheets.sql') on conflict (id) do nothing;

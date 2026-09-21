@@ -11,3 +11,10 @@
 -- fresh, skip this file — schema.sql already has it right.
 
 alter table entities drop constraint if exists entities_business_type_check;
+
+-- Migration tracking — see schema.sql for the full explanation.
+create table if not exists _migrations (
+  id text primary key,
+  applied_at timestamptz not null default now()
+);
+insert into _migrations (id) values ('free_text_business_type.sql') on conflict (id) do nothing;

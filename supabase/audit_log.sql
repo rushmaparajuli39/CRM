@@ -113,3 +113,10 @@ create trigger audit_licenses
 create trigger audit_insurance_policies
   after insert or update or delete on insurance_policies
   for each row execute function log_audit_event();
+
+-- Migration tracking — see schema.sql for the full explanation.
+create table if not exists _migrations (
+  id text primary key,
+  applied_at timestamptz not null default now()
+);
+insert into _migrations (id) values ('audit_log.sql') on conflict (id) do nothing;

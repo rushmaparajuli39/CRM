@@ -27,3 +27,10 @@ create trigger on_auth_user_created
 -- once, then in the SQL editor:
 --   update public.profiles set role = 'admin' where id =
 --     (select id from auth.users where email = 'you@example.com');
+
+-- Migration tracking — see schema.sql for the full explanation.
+create table if not exists _migrations (
+  id text primary key,
+  applied_at timestamptz not null default now()
+);
+insert into _migrations (id) values ('triggers.sql') on conflict (id) do nothing;
