@@ -1,13 +1,90 @@
 # Entity Document CRM
 
-Internal tool for tracking EIN records, licenses, and insurance policies
-(with document photos/PDFs) across 20 business entities, with per-entity
-access control enforced at the database level via Postgres Row Level
-Security.
+An internal tool that keeps EIN records, licenses, and insurance policies (and the documents behind them) for 20 business entities in one place. It flags anything about to expire, tracks monthly cash sheets, and lets each staff member see only the businesses they're responsible for.
+
+**[Live app](https://crm-app-liard-phi.vercel.app)** · **[Case study](https://rushmaparajuli39.github.io/projects/crm.html)** · **[v1 requirements](https://rushmaparajuli39.github.io/requirements/crm-v1.html)**
+
+> **How this was made:** I defined what the business needed, wrote the [v1 requirements](https://rushmaparajuli39.github.io/requirements/crm-v1.html), and tested the tool against how staff actually work. Claude, an AI assistant, wrote and ran the code. Coding isn't my specialty; my background is business operations and analytics.
+
+## At a glance
+
+- **One dashboard** for every business a person can access, with alerts for licenses and insurance expiring within 30 and 60 days
+- **Documents on file:** photos and PDFs of EIN letters, licenses, and insurance certificates, uploaded straight from a phone camera
+- **Monthly cash sheets** for each business, with an automatic email listing any that are missing
+- **The right people see the right businesses:** admins see everything; everyone else only sees the businesses they've been granted
+- **A full history** of every change, recorded automatically
+- **Free to run** on free hosting tiers
+
+The rest of this README is the technical reference: features in detail, the access model, and how to set up and run the app.
+
+## Features
+
+- **Login** — Supabase Auth (email/password), with self-service password
+  reset (`/forgot-password` → emailed link → `/reset-password`) and an
+  admin-triggered "Send reset link" per user in the Admin panel.
+- **Dashboard** — entities you have access to, plus an alert list of
+  licenses/insurance policies expiring within 60 days (color-coded at the
+  30-day mark).
+- **Entity detail** — EIN records, licenses, and insurance policies, each
+  with a document you can view (private storage, served via short-lived
+  signed URLs) or upload.
+- **Document upload** — the file input uses `capture="environment"`, so on
+  a phone it offers the camera directly, not just the file picker.
+- **Admin panel** — create entities, create staff logins, set roles,
+  grant/revoke per-entity access, delete a staff login, and delete an
+  entity (type-to-confirm, removes its records and documents too).
+- **Audit log** (`/admin/audit-log`) — every create/edit/delete on
+  entities, EIN records, licenses, and insurance policies, logged
+  automatically by a database trigger rather than app code remembering
+  to call something. Shows who, what, which entity, and when, newest
+  first.
+- **Monthly cash sheets** — a section on each entity's detail page for
+  uploading a monthly cash sheet (Excel, CSV, PDF, or photo), one per
+  entity/month. Editors (on entities they have access to) and admins can
+  upload; only admins can delete. Admins get two dashboard alert
+  sections — entities missing last month's cash sheet, and cash sheets
+  uploaded in the last 14 days — plus an email for each (upload
+  confirmations immediately, the missing-sheets digest via a monthly
+  Vercel Cron job). See "Enable cash sheet email notifications" below to
+  configure the emails.
+
+## Access model
+
+Three roles in `profiles.role`:
+
+| Role | Sees | Writes |
+|---|---|---|
+| `admin` | every entity | everything — entities, records, documents, staff access grants, roles |
+| `editor` | only entities granted via `user_entity_access` | EIN records, licenses, insurance policies, and their documents — but only on entities they're granted, and never entities themselves or access grants |
+| `viewer` | only entities granted via `user_entity_access` | nothing |
+
+A couple of things worth being explicit about:
+
+- **Entity creation and access grants are admin-only, deliberately.** Who
+  can see which business, and whether a business exists at all, are
+  structural decisions — an editor fixing a typo on a license shouldn't
+  also be able to grant themselves access to a different entity.
+- **RLS is the actual enforcement, not the UI.** The UI hides controls a
+  role can't use, but every write is re-checked at the database via the
+  `*_write` policies in `schema.sql` and `storage.sql` — an editor's
+  request for an entity they're not granted is rejected there regardless
+  of what the UI shows.
+- **The audit log can't be written to directly, by anyone.** `audit_log`
+  has a select policy but no insert/update/delete policy at all — the
+  only way a row gets created is the trigger function in
+  `audit_log.sql`, which runs as a security-definer function and so
+  bypasses RLS. Reading it follows the same scoping as everything else:
+  admins see every entry, everyone else only entries for entities
+  they're granted.
+- If you applied an older copy of this schema before editor write access
+  existed, run `supabase/editor_permissions.sql` once to patch it in —
+  see the setup steps below.
+
+## Running it locally
 
 Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
 
-## 1. Create a Supabase project
+### 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com), create a free project.
 2. In the SQL Editor, run these files from `supabase/` **in order**:
@@ -49,7 +126,7 @@ Stack: Next.js (App Router) + Supabase (Postgres, Auth, Storage), free tier.
    secret API keys" tab, not "Legacy" (legacy anon/service_role JWT
    keys are disabled on this project).
 
-## 2. Configure the app
+### 2. Configure the app
 
 ```bash
 cp .env.local.example .env.local
@@ -59,7 +136,7 @@ Fill in the three values from step 1.3. `SUPABASE_SECRET_KEY` is
 server-only (used by the Admin panel to create staff logins) — never
 expose it to the browser.
 
-## 3. Install and run
+### 3. Install and run
 
 ```bash
 npm install
@@ -69,7 +146,7 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000). You'll be redirected
 to `/login`.
 
-## 4. Create your first admin
+### 4. Create your first admin
 
 There's no public sign-up page (staff accounts are provisioned by an
 admin) — so the very first admin has to be created directly in Supabase:
@@ -86,7 +163,7 @@ admin) — so the very first admin has to be created directly in Supabase:
    entities, create logins for the rest of the staff, and grant them
    access to specific entities.
 
-## 5. Enable password-reset emails
+### 5. Enable password-reset emails
 
 "Forgot your password?" on the login page, and the "Send reset link"
 button next to each user in the Admin panel, both call Supabase's
@@ -105,7 +182,7 @@ Without this, clicking the emailed link redirects to Supabase's default
 Site URL instead of the app's `/reset-password` page, and the reset
 silently fails to reach the right place.
 
-## 6. Enable cash sheet email notifications
+### 6. Enable cash sheet email notifications
 
 The app sends its own emails for two things — a confirmation whenever a
 cash sheet is uploaded, and a monthly digest of entities missing one —
@@ -131,69 +208,6 @@ SMTP settings above (those only cover Supabase's own emails).
 If these env vars are missing, cash sheet uploads and deletes still work
 fine — only the emails are skipped (a failed/misconfigured send is
 logged server-side but never blocks the upload itself).
-
-## Features
-
-- **Login** — Supabase Auth (email/password), with self-service password
-  reset (`/forgot-password` → emailed link → `/reset-password`) and an
-  admin-triggered "Send reset link" per user in the Admin panel.
-- **Dashboard** — entities you have access to, plus an alert list of
-  licenses/insurance policies expiring within 60 days (color-coded at the
-  30-day mark).
-- **Entity detail** — EIN records, licenses, and insurance policies, each
-  with a document you can view (private storage, served via short-lived
-  signed URLs) or upload.
-- **Document upload** — the file input uses `capture="environment"`, so on
-  a phone it offers the camera directly, not just the file picker.
-- **Admin panel** — create entities, create staff logins, set roles,
-  grant/revoke per-entity access, delete a staff login, and delete an
-  entity (type-to-confirm, removes its records and documents too).
-- **Audit log** (`/admin/audit-log`) — every create/edit/delete on
-  entities, EIN records, licenses, and insurance policies, logged
-  automatically by a database trigger rather than app code remembering
-  to call something. Shows who, what, which entity, and when, newest
-  first.
-- **Monthly cash sheets** — a section on each entity's detail page for
-  uploading a monthly cash sheet (Excel, CSV, PDF, or photo), one per
-  entity/month. Editors (on entities they have access to) and admins can
-  upload; only admins can delete. Admins get two dashboard alert
-  sections — entities missing last month's cash sheet, and cash sheets
-  uploaded in the last 14 days — plus an email for each (upload
-  confirmations immediately, the missing-sheets digest via a monthly
-  Vercel Cron job). See "Enable cash sheet email notifications" above to
-  configure the emails.
-
-## Access model
-
-Three roles in `profiles.role`:
-
-| Role | Sees | Writes |
-|---|---|---|
-| `admin` | every entity | everything — entities, records, documents, staff access grants, roles |
-| `editor` | only entities granted via `user_entity_access` | EIN records, licenses, insurance policies, and their documents — but only on entities they're granted, and never entities themselves or access grants |
-| `viewer` | only entities granted via `user_entity_access` | nothing |
-
-A couple of things worth being explicit about:
-
-- **Entity creation and access grants are admin-only, deliberately.** Who
-  can see which business, and whether a business exists at all, are
-  structural decisions — an editor fixing a typo on a license shouldn't
-  also be able to grant themselves access to a different entity.
-- **RLS is the actual enforcement, not the UI.** The UI hides controls a
-  role can't use, but every write is re-checked at the database via the
-  `*_write` policies in `schema.sql` and `storage.sql` — an editor's
-  request for an entity they're not granted is rejected there regardless
-  of what the UI shows.
-- **The audit log can't be written to directly, by anyone.** `audit_log`
-  has a select policy but no insert/update/delete policy at all — the
-  only way a row gets created is the trigger function in
-  `audit_log.sql`, which runs as a security-definer function and so
-  bypasses RLS. Reading it follows the same scoping as everything else:
-  admins see every entry, everyone else only entries for entities
-  they're granted.
-- If you applied an older copy of this schema before editor write access
-  existed, run `supabase/editor_permissions.sql` once to patch it in —
-  see the setup steps above.
 
 ## Deploying
 
