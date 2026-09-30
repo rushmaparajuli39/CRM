@@ -18,6 +18,36 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "KRS Business Group Inc.",
+    "slogan": "Holding | Managing | Growing",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "1901 Central Drive, Suite 612",
+      "addressLocality": "Bedford",
+      "addressRegion": "TX",
+      "postalCode": "76021",
+      "addressCountry": "US"
+    },
+    "subOrganization": {
+      "@type": "InsuranceAgency",
+      "name": "Trishield Insurance Agency",
+      "url": "https://renegadeinsurance.com/agencies/tx/bedford/trishield-insurance-agency/",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "1901 Central Drive, Suite 612",
+        "addressLocality": "Bedford",
+        "addressRegion": "TX",
+        "postalCode": "76021",
+        "addressCountry": "US"
+      }
+    }
+  }
+  </script>
 </head>
 <body>
 
@@ -76,8 +106,8 @@
         </div>
         <div class="about-copy">
           <p>
-            KRS Business Group is a privately held company that owns and operates a portfolio
-            of businesses. We bring each of them the structure of a larger organization —
+            KRS Business Group Inc. is a privately held company, headquartered in Bedford, Texas,
+            that owns and operates a portfolio of businesses. We bring each of them the structure of a larger organization —
             centralized compliance, licensing, insurance, and financial oversight — while
             letting every location stay close to the customers it serves.
           </p>
@@ -147,8 +177,9 @@
               <svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
             </div>
             <h3>Insurance Services</h3>
-            <p>Insurance operations helping individuals, families, and businesses find the
-              coverage that fits their needs and budget.</p>
+            <p>Through <strong>Trishield Insurance Agency</strong>, we help individuals, families,
+              and businesses find the coverage that fits their needs and budget.</p>
+            <a class="card-link" href="https://renegadeinsurance.com/agencies/tx/bedford/trishield-insurance-agency/" target="_blank" rel="noopener">Visit Trishield Insurance Agency &rarr;</a>
           </article>
           <article class="card">
             <div class="card-icon" aria-hidden="true">
@@ -200,12 +231,21 @@
             Whether you're a business owner considering a partnership, a vendor, or
             interested in joining our team, we'd like to hear from you.
           </p>
-          <!-- EDIT: replace with real contact details -->
+          <!-- EDIT: replace the email and phone with real ones -->
           <ul class="contact-list">
             <li><span>Email</span><a href="mailto:info@krsbusinessgroup.com">info@krsbusinessgroup.com</a></li>
             <li><span>Phone</span><a href="tel:+10000000000">(000) 000-0000</a></li>
-            <li><span>Office</span>City, State</li>
+            <li>
+              <span>Office</span>
+              <a href="https://www.google.com/maps/search/?api=1&amp;query=1901+Central+Drive+Suite+612+Bedford+TX+76021" target="_blank" rel="noopener">
+                <address>1901 Central Drive, Suite 612<br>Bedford, Texas 76021</address>
+              </a>
+            </li>
           </ul>
+          <p class="contact-note">Also home to <strong>Trishield Insurance Agency</strong>.</p>
+          <iframe class="map" title="Map to KRS Business Group, 1901 Central Drive, Bedford, Texas"
+            src="https://www.google.com/maps?q=1901+Central+Drive+Suite+612+Bedford+TX+76021&amp;output=embed"
+            loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
 
         <!--
@@ -228,6 +268,7 @@
             <select id="topic" name="topic">
               <option>General inquiry</option>
               <option>Selling or partnering a business</option>
+              <option>Insurance (Trishield Insurance Agency)</option>
               <option>Vendor / supplier</option>
               <option>Careers</option>
             </select>
@@ -253,7 +294,8 @@
         </span>
       </div>
       <p class="footer-tagline">Holding | Managing | Growing</p>
-      <p class="footer-copy">&copy; <span id="year">2026</span> KRS Business Group. All rights reserved.</p>
+      <p class="footer-address">1901 Central Drive, Suite 612 &middot; Bedford, Texas 76021</p>
+      <p class="footer-copy">&copy; <span id="year">2026</span> KRS Business Group Inc. All rights reserved.</p>
     </div>
   </footer>
 

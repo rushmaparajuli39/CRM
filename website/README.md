@@ -14,7 +14,7 @@ website/
 
 ## Before going live — fill in (search for `EDIT:` in index.html)
 
-1. **Contact details**: email, phone, office city/state.
+1. **Contact details**: email and phone (the Bedford office address is already in).
 2. **Stats**: "20 operating businesses / 3 industries". Confirm these numbers.
 3. **Contact form**: out of the box it opens the visitor's email app. To get
    submissions emailed to you directly, sign up at https://formspree.io (free:
